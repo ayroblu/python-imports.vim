@@ -265,7 +265,7 @@ function! ImportName(name, here, stay)
     " Look for hardcoded names
     if has_key(g:pythonImports, l:name)
         let pkg = g:pythonImports[l:name]
-    elseif IsStdlibModule(l:name)
+    elseif l:name[0:1] != toupper(l:name[0:1]) && IsStdlibModule(l:name)
         let pkg = ''
     else
         " Let's see if we have one tag, or multiple tags (in which case we'll
@@ -285,7 +285,8 @@ function! ImportName(name, here, stay)
             " Need to remove the first two last two characters (regex) /^...$/
 
             " Not from import means actual definition probably, if only one
-            let actual_def = filter(copy(found), {pos, val -> "" == matchstr(val.cmd[2:-3], from_regex)})
+            let actual_def = filter(copy(found), {pos, val ->
+              \ "" == matchstr(val.cmd[2:-3], from_regex) && val.filename[-3:-1] == '.py'})
             if len(actual_def) == 1
               let pkg = pythonimports#filename2module(actual_def[0].filename)
             else
@@ -301,6 +302,8 @@ function! ImportName(name, here, stay)
 
               let pkg = sorted_items[0][0]
             endif
+            " Useful for debugging
+            "exec "stjump /" . tag_rx
         endif
         if fnamemodify(pkg, 't') == l:name . ".py"
             let pkg = pythonimports#package_of(pkg)

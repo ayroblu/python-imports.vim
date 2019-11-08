@@ -5,10 +5,21 @@ See original repo https://github.com/mgedmin/python-imports.vim for more info
 I had trouble making this work reliably, it couldn't find stdlib files, from
 imports, files in it's own repo and it jumped to other files etc.
 Instead I just use the taglist it was already generating with the source
-imports, find the most common one and call it a day, saying it's "good enough"
+imports, find the most common one and call it a day, saying it's "good enough".
+Cause you probably define every function just once, and reference it correctly
+more often than not in a mature codebase
+
+Cases that work for me:
+
+1. stdlib root: `import datetime`
+2. stdlib from: `from datetime import date`
+3. third party from: `from sqlalchemy import Column`
+4. third party from nested: `from sqlalchemy.sql import Select`
+4. first party from: `from my.package.module import name`
 
 I use macOS, `brew install ctags`, run this command for my tags:
-`rg --files | ctags --links=no -L-` and I also use `jedi-vim`.
+`rg --files | ctags --links=no -L-` and I also use `jedi-vim`, and after
+importing I sort imports with isort so it doesn't matter how it's imported
 
 
 Overview
