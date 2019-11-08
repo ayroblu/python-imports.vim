@@ -253,13 +253,14 @@ function! ImportName(name, here, stay)
 " on the line above the cursor, if 'here' is false, adds the line to the top
 " of the current file.  If 'stay' is true, keeps cursor position, otherwise
 " jumps to the line containing the newly added import statement.
-
+    execute "normal! mq"
     " If name is empty, pick up the word under cursor
     if a:name == ""
         let l:name = expand("<cword>")
     else
         let l:name = a:name
     endif
+    let line_to_insert = ""
 
     " Look for hardcoded names
     if has_key(g:pythonImports, l:name)
@@ -280,52 +281,40 @@ function! ImportName(name, here, stay)
             " whole costly procedure of opening split windows.
             let pkg = pythonimports#filename2module(found[0].filename)
         else
-            " Try to jump to the tag in a new window
-            let v:errmsg = ""
-            let l:oldfile = expand('%')
-            let l:oldswb = &switchbuf
-            set switchbuf=split
-            let l:oldwinnr = winnr()
-            try
-                exec "stjump /" . tag_rx
-            finally
-                let &switchbuf = l:oldswb
-            endtry
-            if v:errmsg != ""
-                " Something bad happened (maybe the other file is opened in a
-                " different vim instance and there's a swap file)
-                if l:oldfile != expand('%')
-                    close
-                    exec l:oldwinnr "wincmd w"
-                endif
-                return
+            " Need to remove the first two last two characters (regex) /^...$/
+            let imports = map(found, {pos,val -> val.cmd[2:-3]})
+            let from_regex = 'from \zs\S\{-}\S\ze import'
+            let import_pkg = map(imports, {pos, val -> matchstr(val, from_regex)})
+            " Handle the `import name` case
+            let import_pkgs = map(import_pkg, {pos, val -> empty(val) ? imports[pos] : val})
+            " Count the popularily of packages, sort, pick the first
+            let a = {}
+            for i in import_pkgs
+              let a[i] = get(a, i, 0) + 1
+            endfor
+            let sorted_items = sort(items(a), {n1, n2 -> n1[1] < n2[1]})
+
+            if empty(match(sorted_items[0][0], from_regex))
+              let line_to_insert = sorted_items[0][0]
+              let pkg = CurrentPythonModule()
+            else
+              let pkg = sorted_items[0][0]
             endif
-            if l:oldfile == expand('%')
-                " Either the user aborted the tag jump, or the tag exists in
-                " the same file, and therefore import is pointless
-                return
-            endif
-            " Look at the file name of the module that contains this tag.  Find the
-            " nearest parent directory that does not have __init__.py.  Assume it is
-            " directly included in PYTHONPATH.
-            let pkg = CurrentPythonModule()
-            " Close the window containing the tag
-            close
-            " Return to the right window
-            exec l:oldwinnr "wincmd w"
         endif
         if fnamemodify(pkg, 't') == l:name . ".py"
             let pkg = pythonimports#package_of(pkg)
         endif
     endif
 
-    if pkg == ""
-        let line_to_insert = 'import ' . l:name
-    elseif pkg == "__future__" && l:name == "print"
-        let line_to_insert = 'from __future__ import print_function'
-    else
-        let line_to_insert = 'from ' . pkg . ' import ' . l:name
-    endif
+    if line_to_insert == ""
+      if pkg == ""
+          let line_to_insert = 'import ' . l:name
+      elseif pkg == "__future__" && l:name == "print"
+          let line_to_insert = 'from __future__ import print_function'
+      else
+          let line_to_insert = 'from ' . pkg . ' import ' . l:name
+      endif
+    end
 
     " Find the place for adding the import statement
     if !a:here
@@ -370,6 +359,7 @@ function! ImportName(name, here, stay)
         ALEResetBuffer
         ALELint
     endif
+    execute "normal! `qzz"
 endf
 
 command! -nargs=? -bang -complete=tag ImportName	call ImportName(<q-args>, 0, <q-bang> == "!")
