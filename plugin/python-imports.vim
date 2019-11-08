@@ -213,7 +213,7 @@ function! FindPlaceForImport(pkg, name)
 " Find the appropriate place to insert a "from pkg import name" line.
 
     " Go to the top (use 'normal gg' because I want to set the ' mark)
-    normal gg
+    normal! gg
     keepjumps silent! 0/^"""/;/^"""/           " Skip docstring, if it exists
     keepjumps silent! /^import\|^from.*import/ " Find the first import statement
     nohlsearch
@@ -222,7 +222,7 @@ function! FindPlaceForImport(pkg, name)
     endif
     " Find the first empty line after that.  NOTE: DO NOT put any comments
     " on the line that says `normal`, or you'll get 24 extra spaces here
-    keepjumps normal }
+    keepjumps normal! }
     " Try to find an existing import from the same module, and move to
     " the last one of these
     let pkg = a:pkg
@@ -352,7 +352,7 @@ function! ImportName(name, here, stay)
     put! =line_to_insert
     " Jump back if possible
     if a:stay
-        normal ``
+        normal! ``
     endif
     " Refresh ALE because otherwise it gets all confused for a bit
     if exists("*ALELint")
