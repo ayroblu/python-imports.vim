@@ -1,3 +1,15 @@
+Fork note:
+----------
+See original repo https://github.com/mgedmin/python-imports.vim for more info
+
+I had trouble making this work reliably, it couldn't find stdlib files, from
+imports, files in it's own repo and it jumped to other files etc.
+Instead I just use the taglist it was already generating with the source
+imports, find the most common one and call it a day, saying it's "good enough"
+
+See my `.zshrc-personal` and `.ctags` file for more info for how I've set up my
+ctags cmd and params
+
 Overview
 --------
 Vim script to help adding import statements in Python modules.
