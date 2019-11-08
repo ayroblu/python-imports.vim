@@ -281,23 +281,24 @@ function! ImportName(name, here, stay)
             " whole costly procedure of opening split windows.
             let pkg = pythonimports#filename2module(found[0].filename)
         else
-            " Need to remove the first two last two characters (regex) /^...$/
-            let imports = map(found, {pos,val -> val.cmd[2:-3]})
             let from_regex = 'from \zs\S\{-}\S\ze import'
-            let import_pkg = map(imports, {pos, val -> matchstr(val, from_regex)})
-            " Handle the `import name` case
-            let import_pkgs = map(import_pkg, {pos, val -> empty(val) ? imports[pos] : val})
-            " Count the popularily of packages, sort, pick the first
-            let a = {}
-            for i in import_pkgs
-              let a[i] = get(a, i, 0) + 1
-            endfor
-            let sorted_items = sort(items(a), {n1, n2 -> n1[1] < n2[1]})
+            " Need to remove the first two last two characters (regex) /^...$/
 
-            if empty(match(sorted_items[0][0], from_regex))
-              let line_to_insert = sorted_items[0][0]
-              let pkg = CurrentPythonModule()
+            " Not from import means actual definition probably, if only one
+            let actual_def = filter(copy(found), {pos, val -> "" == matchstr(val.cmd[2:-3], from_regex)})
+            if len(actual_def) == 1
+              let pkg = pythonimports#filename2module(actual_def[0].filename)
             else
+              let imports = map(copy(found), {pos,val -> val.cmd[2:-3]})
+              let import_pkg = map(copy(imports), {pos, val -> matchstr(val, from_regex)})
+              let import_pkgs = filter(copy(import_pkg), {pos, val -> val != ''})
+              " Count the popularily of packages, sort, pick the first
+              let a = {}
+              for i in import_pkgs
+                let a[i] = get(a, i, 0) + 1
+              endfor
+              let sorted_items = sort(items(a), {n1, n2 -> n1[1] < n2[1]})
+
               let pkg = sorted_items[0][0]
             endif
         endif
