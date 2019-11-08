@@ -7,8 +7,9 @@ imports, files in it's own repo and it jumped to other files etc.
 Instead I just use the taglist it was already generating with the source
 imports, find the most common one and call it a day, saying it's "good enough"
 
-See my `.zshrc-personal` and `.ctags` file for more info for how I've set up my
-ctags cmd and params
+I use macOS, `brew install ctags`, run this command for my tags:
+`rg --files | ctags --links=no -L-` and I also use `jedi-vim`.
+
 
 Overview
 --------
