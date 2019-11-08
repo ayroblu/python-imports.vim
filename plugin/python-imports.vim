@@ -265,42 +265,53 @@ function! ImportName(name, here, stay)
     " Look for hardcoded names
     if has_key(g:pythonImports, l:name)
         let pkg = g:pythonImports[l:name]
-    elseif l:name[0:1] != toupper(l:name[0:1]) && IsStdlibModule(l:name)
-        let pkg = ''
     else
         " Let's see if we have one tag, or multiple tags (in which case we'll
         " let the user decide)
         let tag_rx = "^\\C" . l:name . "\\([.]py\\)\\=$"
         let found = s:taglist(tag_rx, expand("%"))
         if found == []
-            " Give up and bail out
-            echohl Error | echomsg "Tag not found:" l:name | echohl None
-            return
+            if IsStdlibModule(l:name)
+              let pkg = ''
+            else
+              " Give up and bail out
+              echohl Error | echomsg "Tag not found:" l:name | echohl None
+              return
+            endif
         elseif len(found) == 1
             " Only one name found, we can skip the selection menu and the
             " whole costly procedure of opening split windows.
             let pkg = pythonimports#filename2module(found[0].filename)
         else
             let from_regex = 'from \zs\S\{-}\S\ze import'
+            let import_regex = 'import \S\{-}$'
             " Need to remove the first two last two characters (regex) /^...$/
 
             " Not from import means actual definition probably, if only one
             let actual_def = filter(copy(found), {pos, val ->
-              \ "" == matchstr(val.cmd[2:-3], from_regex) && val.filename[-3:-1] == '.py'})
+              \   "" == matchstr(val.cmd[2:-3], from_regex)
+              \   && val.filename[-3:-1] == '.py'
+              \   && "" == matchstr(val.filename, 'python')
+              \ })
             if len(actual_def) == 1
               let pkg = pythonimports#filename2module(actual_def[0].filename)
             else
               let imports = map(copy(found), {pos,val -> val.cmd[2:-3]})
-              let import_pkg = map(copy(imports), {pos, val -> matchstr(val, from_regex)})
-              let import_pkgs = filter(copy(import_pkg), {pos, val -> val != ''})
+              let from_pkg = map(copy(imports), {pos, val -> matchstr(val, from_regex)})
+              let import_pkg = map(copy(imports), {pos, val -> matchstr(val, import_regex)})
+              let combined_pkg = map(copy(from_pkg), {pos, val -> val != '' ? val : import_pkg[pos]})
+              let import_pkgs = filter(copy(combined_pkg), {pos, val -> val != ''})
               " Count the popularily of packages, sort, pick the first
               let a = {}
               for i in import_pkgs
                 let a[i] = get(a, i, 0) + 1
               endfor
               let sorted_items = sort(items(a), {n1, n2 -> n1[1] < n2[1]})
-
-              let pkg = sorted_items[0][0]
+              if matchstr(sorted_items[0][0], import_regex) != ''
+                let pkg = ''
+              else
+                let pkg = sorted_items[0][0]
+              endif
             endif
             " Useful for debugging
             "exec "stjump /" . tag_rx

@@ -12,9 +12,8 @@ more often than not in a mature codebase
 Cases that work for me:
 
 1. stdlib root: `import datetime`
-2. stdlib from: `from datetime import date`
-3. third party from: `from sqlalchemy import Column`
-4. third party from nested: `from sqlalchemy.sql import Select`
+2. stdlib from if used: `from datetime import date`
+3. third party from used: `from sqlalchemy import Column`
 4. first party from: `from my.package.module import name`
 
 I use macOS, `brew install ctags`, run this command for my tags:
